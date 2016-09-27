@@ -286,7 +286,7 @@ def test_RNN():
   start_time = time.time()
   val_preds, val_losses = model.predict(
       model.dev_data,
-      SAVE_DIR + '%s' % model.config.model_name,
+      SAVE_DIR + '%s.temp' % model.config.model_name,
       get_loss=True)
   val_labels = [t.root.label for t in model.dev_data]
   val_acc = np.equal(val_preds, val_labels).mean()
@@ -295,7 +295,7 @@ def test_RNN():
   print '-' * 20
   print 'Test'
   predictions, _ = model.predict(model.test_data,
-                                 SAVE_DIR + '%s' % model.config.model_name)
+                                 SAVE_DIR + '%s.temp' % model.config.model_name)
   labels = [t.root.label for t in model.test_data]
   print model.make_conf(labels, predictions)
   test_acc = np.equal(predictions, labels).mean()
