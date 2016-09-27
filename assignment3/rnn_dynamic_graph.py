@@ -269,10 +269,6 @@ class RNN_Model():
     print 'Valiation acc (only root node): {}'.format(val_acc)
     print self.make_conf(train_labels, train_preds)
     print self.make_conf(val_labels, val_preds)
-    print train_labels
-    print train_preds
-    print val_labels
-    print val_preds
     return train_acc, val_acc, loss_history, np.mean(val_losses)
 
   def train(self, verbose=True):
@@ -353,7 +349,7 @@ def test_RNN():
   stats = model.train(verbose=True)
   print 'Training time: {}'.format(time.time() - start_time)
 
-  #plot_loss_history(stats)
+  plot_loss_history(stats)
 
   start_time = time.time()
   val_preds, val_losses = model.predict(
