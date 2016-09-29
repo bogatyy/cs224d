@@ -22,7 +22,7 @@ class Config(object):
   early_stopping = 2
   anneal_threshold = 0.99
   anneal_by = 1.5
-  max_epochs = 5
+  max_epochs = 30
   lr = 0.01
   l2 = 0.02
 

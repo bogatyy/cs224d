@@ -128,6 +128,35 @@ Static graph: 23.3 trees/sec for training, 48.5 trees/sec inference.
 
 __Conclusion: training 16x faster, inference 8x faster!__
 
+### Using AdamOptimizer
+Another benefit of building the graph statically is the possibility to use more
+advanced optimiziation algorithms like Adam.
+
+Attempting to simply switch `tf.train.GradientDescentOptimizer(self.config.lr).minimize(loss_tensor)`
+to `tf.train.AdamOptimizer(self.config.lr).minimize(loss_tensor)` would crash
+the training code:
+```python
+FailedPreconditionError (see above for traceback): Attempting to use
+uninitialized value beta1_power
+   [[Node: beta1_power/read = Identity[T=DT_FLOAT, _class=["loc:@Embeddings/embeddings"], _device="/job:localhost/replica:0/task:0/gpu:0"](beta1_power)]]
+   ...
+```
+This happens because Adam creates custom variables to store momentum
+estimates, and their number depends on the structure of the graph. As a result,
+there would have to be a re-initialization op for the new variables before every
+train_op, making the training process extremely slow.
+
+However, for the static graph version swapping one optimizer for another works just fine.
+Note how much faster Adam converges here (though it starts overfitting by epoch
+4).
+| Epoch | SGD train set loss | Adam train set loss | SGD train set accuracy | Adam train set accuracy | SGD dev set accuracy | Adam dev set accuracy |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 4.857 | 3.934 | 0.52 | 0.90 | 0.46 | 0.62 |
+| 2 | 4.613 | 1.784 | 0.5 | 0.98 | 0.5 | 0.75 |
+| 3 | 4.482 | 0.750 | 0.5 | 0.99 | 0.5 | 0.82 |
+| 4 | 4.304 | 0.603 | 0.5 | 0.99 | 0.5 | 0.76 |
+| 5 | 4.058 | 0.411 | 0.5 | 0.99 | 0.5 | 0.72 |
+
 ### Batching examples
 It should not be too hard to add batching to the static graph implementation, speeding it up even further.
 We would have to pad the placeholders up to the length of the longest tree in the batch, and in the loop body replace [`tf.cond(...)`](https://www.tensorflow.org/versions/r0.10/api_docs/python/control_flow_ops.html#cond) on a single value with [`tf.select(...)`](https://www.tensorflow.org/versions/r0.10/api_docs/python/control_flow_ops.html#select) on the whole batch.
