@@ -57,7 +57,7 @@ class RNN_Model():
     else:
       node_tensors = [tensor for node, tensor in node_tensors.iteritems()
                       if node.label != 2]
-      node_tensors = tf.concat(0, node_tensors)
+      node_tensors = tf.concat(node_tensors,0)
     return self.add_projections(node_tensors)
 
   def add_model_vars(self):
@@ -121,7 +121,7 @@ class RNN_Model():
       node_tensors.update(self.add_model(node.left))
       node_tensors.update(self.add_model(node.right))
       node_input = tf.concat(
-          1, [node_tensors[node.left], node_tensors[node.right]])
+          [node_tensors[node.left], node_tensors[node.right]],1)
       curr_node_tensor = tf.nn.relu(tf.matmul(node_input, W1) + b1)
 
     node_tensors[node] = curr_node_tensor
@@ -154,7 +154,7 @@ class RNN_Model():
         loss: tensor 0-D
     """
     softmax_loss = tf.reduce_sum(
-        tf.nn.sparse_softmax_cross_entropy_with_logits(logits, tf.constant(
+        tf.nn.sparse_softmax_cross_entropy_with_logits(logits =logits, labels=tf.constant(
             labels)))
     with tf.variable_scope('Composition', reuse=True):
       W1 = tf.get_variable('W1')

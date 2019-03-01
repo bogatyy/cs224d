@@ -38,6 +38,7 @@ class RecursiveNetStaticGraph():
     self.train_data, self.dev_data, self.test_data = tree.simplified_data(700,
                                                                           100,
                                                                           200)
+    # print("data ",self.train_data)
     self.vocab = utils.Vocab()
     train_sents = [t.get_words() for t in self.train_data]
     self.vocab.construct(list(itertools.chain.from_iterable(train_sents)))
@@ -80,13 +81,14 @@ class RecursiveNetStaticGraph():
         return tf.expand_dims(tf.gather(embeddings, word_index), 0)
 
     def combine_children(left_tensor, right_tensor):
-      return tf.nn.relu(tf.matmul(tf.concat(1, [left_tensor, right_tensor]), W1) + b1)
+      return tf.nn.relu(tf.matmul(tf.concat([left_tensor, right_tensor],1), W1) + b1)
 
     def loop_body(tensor_array, i):
       node_is_leaf = tf.gather(self.is_leaf_placeholder, i)
       node_word_index = tf.gather(self.node_word_indices_placeholder, i)
       left_child = tf.gather(self.left_children_placeholder, i)
       right_child = tf.gather(self.right_children_placeholder, i)
+      print(left_child,"left_child")
       node_tensor = tf.cond(
           node_is_leaf,
           lambda: embed_word(node_word_index),
@@ -98,8 +100,7 @@ class RecursiveNetStaticGraph():
 
     loop_cond = lambda tensor_array, i: \
         tf.less(i, tf.squeeze(tf.shape(self.is_leaf_placeholder)))
-    self.tensor_array, _ = tf.while_loop(
-        loop_cond, loop_body, [tensor_array, 0], parallel_iterations=1)
+    self.tensor_array, _ = tf.while_loop(loop_cond, loop_body, [tensor_array, 0], parallel_iterations=1)
 
     # add projection layer
     self.logits = tf.matmul(self.tensor_array.concat(), U) + bs
@@ -113,11 +114,11 @@ class RecursiveNetStaticGraph():
     included_indices = tf.where(tf.less(self.labels_placeholder, 2))
     self.full_loss = regularization_loss + tf.reduce_sum(
         tf.nn.sparse_softmax_cross_entropy_with_logits(
-            tf.gather(self.logits, included_indices), tf.gather(
+            logits=tf.gather(self.logits, included_indices),labels=tf.gather(
                 self.labels_placeholder, included_indices)))
     self.root_loss = tf.reduce_sum(
         tf.nn.sparse_softmax_cross_entropy_with_logits(
-            self.root_logits, self.labels_placeholder[-1:]))
+            logits=self.root_logits,labels=self.labels_placeholder[-1:]))
 
     # add training op
     self.train_op = tf.train.GradientDescentOptimizer(self.config.lr).minimize(
@@ -173,6 +174,7 @@ class RecursiveNetStaticGraph():
         saver = tf.train.Saver()
         saver.restore(sess, SAVE_DIR + '%s.temp' % self.config.model_name)
       for step, tree in enumerate(self.train_data):
+        print(tree,"tree")
         feed_dict = self.build_feed_dict(tree.root)
         loss_value, _ = sess.run([self.full_loss, self.train_op],
                                  feed_dict=feed_dict)
@@ -306,3 +308,4 @@ def test_RNN():
 
 if __name__ == '__main__':
   test_RNN()
+  # train()
